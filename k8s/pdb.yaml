@@ -1,0 +1,10 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: workshop-app
+  namespace: dev-kartik
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: workshop-app
