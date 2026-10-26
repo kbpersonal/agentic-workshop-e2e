@@ -1,17 +1,14 @@
 {
 	"tagOwners": {
-		"tag:ci-deployer":     ["autogroup:admin"],
-		"tag:k8s-operator":    ["autogroup:admin"],
-		"tag:k8s-dev":         ["tag:k8s-operator"],
+		"tag:server":          ["autogroup:admin"],
 		"tag:border0-managed": ["autogroup:admin"],
+		"tag:infra":           ["autogroup:admin"],
+		"tag:k8s-operator":    ["tag:infra", "autogroup:admin"],
+		"tag:k8s":             ["tag:k8s-operator"],
+		"tag:subnet-router":   ["tag:infra"],
+		"tag:ci-deployer":     ["autogroup:admin"],
+		"tag:k8s-dev":         ["tag:k8s-operator"],
 		"tag:aperture":        ["autogroup:admin"],
-	},
-
-	"autoApprovers": {
-		"services": {
-			"tag:k8s-dev":         ["tag:k8s-dev"],
-			"tag:border0-managed": ["tag:border0-managed"],
-		},
 	},
 
 	"grants": [
@@ -19,6 +16,42 @@
 			"src": ["autogroup:member"],
 			"dst": ["autogroup:self"],
 			"ip":  ["*"],
+		},
+		{
+			"src": ["autogroup:admin"],
+			"dst": [
+				"tag:server",
+				"tag:infra",
+				"tag:k8s-operator",
+				"tag:k8s",
+				"tag:subnet-router",
+			],
+			"ip": ["*"],
+		},
+		{
+			"src": ["*"],
+			"dst": ["tag:border0-managed"],
+			"ip":  ["*"],
+
+			"app": {
+				"tailscale.com/cap/pam": [
+					{
+						"version": "v1",
+
+						"permissions": {
+							"http": {},
+
+							"ssh": {
+								"shell": {},
+								"exec":  {},
+								"sftp":  {},
+							},
+
+							"database": {},
+						},
+					},
+				],
+			},
 		},
 		{
 			"src": ["autogroup:admin"],
@@ -56,6 +89,51 @@
 					{"models": "**"},
 				],
 			},
+		},
+	],
+
+	"nodeAttrs": [
+		{
+			"target": ["*"],
+
+			"app": {
+				"tailscale.com/app-connectors": [
+					{
+						"name":       "tun-repro",
+						"connectors": ["tag:server"],
+						"domains":    ["ifconfig.me"],
+					},
+				],
+			},
+		},
+	],
+
+	"autoApprovers": {
+		"routes": {
+			"0.0.0.0/0":      ["tag:server", "tag:infra"],
+			"::/0":           ["tag:server", "tag:infra"],
+			"10.0.0.0/8":     ["tag:infra", "tag:k8s", "tag:subnet-router"],
+			"172.16.0.0/12":  ["tag:infra", "tag:k8s", "tag:subnet-router"],
+			"192.168.0.0/16": ["tag:infra", "tag:k8s", "tag:subnet-router"],
+		},
+		"services": {
+			"tag:k8s-dev":         ["tag:k8s-dev"],
+			"tag:border0-managed": ["tag:border0-managed"],
+		},
+	},
+
+	"ssh": [
+		{
+			"action": "accept",
+			"src":    ["tag:server"],
+			"dst":    ["tag:server"],
+			"users":  ["root"],
+		},
+		{
+			"action": "accept",
+			"src":    ["autogroup:member"],
+			"dst":    ["tag:server"],
+			"users":  ["autogroup:nonroot", "root"],
 		},
 	],
 
